@@ -134,6 +134,51 @@
     box-shadow:6px 6px 0 var(--dark); padding:30px; margin-bottom:40px;
   }
   .chart-wrap { position:relative; height:320px; }
+
+  /* MOBILE */
+  @media (max-width: 600px) {
+    .wrapper { padding:20px 14px 40px; }
+    header { gap:10px; margin-bottom:30px; }
+    .logo-wrap { padding:14px 24px; }
+    .logo-img { height:44px; }
+    .subtitle { font-size:12px; letter-spacing:0.5px; }
+    .badge { font-size:11px; }
+
+    .stats-row { grid-template-columns: repeat(3, 1fr); gap:10px; margin-bottom:24px; }
+    .stat-box { padding:12px 8px; border-radius:14px; }
+    .stat-icon { font-size:20px; margin-bottom:4px; }
+    .stat-val { font-size:24px; }
+    .stat-label { font-size:9px; }
+
+    .leaderboard { padding:16px 12px; border-radius:18px; margin-bottom:24px; }
+    .section-title { font-size:22px; margin-bottom:14px; }
+    .lb-row { padding:10px 10px; gap:8px; border-radius:12px; margin-bottom:8px; }
+    .rank { font-size:20px; width:28px; }
+    .rank-other { font-size:16px; }
+    .avatar { width:34px; height:34px; font-size:15px; }
+    .intern-name { font-size:14px; }
+    .dot { width:26px; height:26px; font-size:10px; }
+    .total-badge { font-size:16px; padding:3px 10px; }
+    .week-dots { gap:4px; }
+
+    .cards-grid { grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:24px; }
+    .card { padding:14px 12px; border-radius:16px; }
+    .card-avatar { width:40px; height:40px; font-size:18px; margin-bottom:8px; }
+    .card-name { font-size:16px; }
+    .card-avg { font-size:11px; margin-bottom:10px; }
+    .card-avg span { font-size:12px; }
+    .score-label { font-size:10px; width:70px; }
+    .score-val { font-size:11px; }
+    .judge-chip { font-size:9px; padding:2px 6px; }
+
+    .chart-section { padding:16px 12px; border-radius:18px; }
+    .chart-wrap { height:240px; }
+  }
+
+  @media (max-width: 380px) {
+    .cards-grid { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+  }
 </style>
 </head>
 <body>
@@ -247,6 +292,11 @@ function buildDashboard(interns, weekLabels, numWeeks) {
 
   document.getElementById('dashSubtitle').textContent = `Score Cards · Weeks 1–${numWeeks} · Scored out of 20`;
 
+  // Determine which weeks have at least one score across all interns (used to hide empty weeks)
+  const scoredWeeks = Array.from({length: numWeeks}, (_,wi) =>
+    interns.some(intern => intern.weeks[wi] !== null)
+  );
+
   // Build Leaderboard
   const sorted = [...interns].sort((a,b)=>total(b.scores)-total(a.scores));
   const lb = document.getElementById('leaderboard');
@@ -255,6 +305,7 @@ function buildDashboard(interns, weekLabels, numWeeks) {
     const medals=['🥇','🥈','🥉'];
     const rankClass=['rank-1','rank-2','rank-3'][i]||'rank-other';
     const dots=intern.scores.map((s,wi)=>{
+      if (!scoredWeeks[wi]) return ''; // hide fully empty weeks
       const val=s!==null?s:'—';
       return `<div class="${dotClass(s)}" title="${weekLabels[wi]||'Week '+(wi+1)}: ${val}">${val}</div>`;
     }).join('');
@@ -268,13 +319,15 @@ function buildDashboard(interns, weekLabels, numWeeks) {
       </div>`;
   });
 
-  // Build Score Cards — sorted highest to lowest
+  // Build Score Cards — sorted highest to lowest, hiding fully empty weeks
   const cardsSorted = [...interns].sort((a,b)=>total(b.scores)-total(a.scores));
   const cardsEl = document.getElementById('cards');
   cardsEl.innerHTML = '';
+
   cardsSorted.forEach((intern,i)=>{
     const originalIndex = interns.indexOf(intern);
     const rows = intern.weeks.map((w, wi) => {
+      if (!scoredWeeks[wi]) return ''; // hide fully empty weeks
       const combined = w ? w[0]+w[1] : null;
       const tw = combined !== null ? (combined/20)*100 : 0;
       const color = combined !== null ? barColor(combined) : '#eee';
